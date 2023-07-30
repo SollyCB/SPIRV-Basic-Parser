@@ -1,0 +1,3 @@
+#!/usr/bin/bash
+
+spirv-dis *.vert.spv

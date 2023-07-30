@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+
+glslangValidator -V $1.vert -o $1.vert.spv 
+glslangValidator -V $1.frag -o $1.frag.spv 
