@@ -1,102 +1,93 @@
 #pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
 #include <iostream>
-
-#define GLOBAL_TEST_KILL false
-#define GLOBAL_TEST_NO_KILL true
-
-static const char* RED = "\033[0;31m";
-static const char* NC = "\033[0m";
-static const char* GREEN = "\033[0;33m";
-static const char* YELLOW = "\033[1;33m";
-
-#define TEST_MSG() \
-    std::cout << "Test Func: " << __FUNCTION__ << ", Result: \n"
-#define TEST_FUNC_BEGIN() \
-    TEST_MSG(); \
-    size_t test_index__ = 0; \
-    bool test_pass_check__ = true;
-
-#define TEST_PRINT_BEGIN() \
-    std::cout << "\nBeginning Test Suite " << __FILE__ << ":\n"
-#define TEST_PRINT_PASS() \
-    std::cout << GREEN << "OK\n" << NC;
-#define TEST_PRINT_SKIP() \
-    std::cout << YELLOW << "SKIPPED\n" << NC;
-
-#define TEST_PRINT_FAIL(print_arg1__, print_arg2__, op_arg__) \
-    std::cout << RED << "FAIL " << NC << "[Test Index: " << test_index__ << "] (" << #print_arg1__ << ' ' << #op_arg__ << ' ' << #print_arg2__ << ")\n";
-
-#define TEST_PRINT_FAIL_INFO(print_arg1__, print_arg2__, op_arg__) \
-    std::cout << RED << "FAIL " << NC << "[Test Index: " << test_index__ << "] (" << #print_arg1__ \
-    << ' ' << #op_arg__ << ' ' << #print_arg2__ << ", " << #print_arg1__ << " = " << print_arg1__ \
-    << ", " << #print_arg2__ << " = " << (print_arg2__) << ")\n";
-
-#define TEST_FUNC_END() \
-    if (test_pass_check__) { \
-        TEST_PRINT_PASS(); \
-    } \
-    test_index__ = 0;
-
 
 namespace Sol::Test {
 
+static const char* RED = "\u001b[1m\u001b[31;1m";
+static const char* NC = "\033[0m";
+static const char* GREEN = "\u001b[32;1m";
+static const char* YELLOW = "\033[1;33m";
+static const char* BLUE = "\u001b[35;1m";
+static const char* CYAN = "\u001b[34;1m";
+
 template<typename T>
-bool match_eq(T arg1, T arg2, bool skip) {
-    if (skip) {
-        TEST_PRINT_SKIP();
-        return true;
-    }
-    if (arg1 != arg2) {
-        return false;
-    }
-    return true;
+void test_fail(
+        const char* test_name, T val1, T val2, const char* name1, 
+        const char* name2, const char* op, const char* file_name, const char* function_name) 
+{
+    std::cout << RED << "    TEST FAIL! " << NC << "[ FunctionName: " << function_name << " ], TestName " << test_name << ": " \
+    << name1 << ' ' << op << ' ' << name2 << ", " << name1 << " = " << val1 \
+    << ", " << name2 << " = " << val2 << '\n';
 }
-template<typename T>
-bool byte_match_eq(T arg1, T arg2, bool skip) {
-    if (skip) {
-        TEST_PRINT_SKIP();
-        return true;
+void test_skipped(const char* test_name);
+
+struct TestClass {
+    virtual void run() = 0;
+};
+struct StringBuffer {
+    char* data = nullptr;
+    static StringBuffer get(const char* str);
+    void kill();
+    const char* cstr();
+};
+struct Module {
+    StringBuffer module_name;
+    StringBuffer file_name;
+    bool skippable = true;
+    bool skip_module = false;
+    bool skipped = true;
+    bool ok = true;
+    uint32_t test_index = 0;
+
+    static void begin(const char* name, const char* file_name, const char* function_name, bool skippable = true, bool skip_module = false);
+    static void end();
+    void kill();
+
+    template<typename T>
+    void test_eq(const char* test_name, T arg1, T arg2, const char* arg1_name, const char* arg2_name, const char* file_name, const char* function_name, bool skip) {
+        if (skip_module)
+            return;
+
+        ++test_index;
+        if (skippable && skip) {
+            test_skipped(test_name);
+            return;
+        } else 
+            skipped = false;
+
+        if (arg1 == arg2)
+            return;
+        ok = false;
+        test_fail(test_name, arg1, arg2, arg1_name, arg2_name, "!=", file_name, function_name);
     }
-    size_t size = sizeof(T);
-    char* char_arg1 = reinterpret_cast<char*>(&arg1);
-    char* char_arg2 = reinterpret_cast<char*>(&arg2);
-    for(size_t i = 0; i < size; ++i) {
-        if (char_arg1[i] != char_arg2[i]) {
-            return false;
-        }
-    }
-    return true;
-}
+
+};
+struct List {
+    size_t len = 0;
+    size_t cap = 0;
+    Module* data = nullptr;
+    void init();
+    void kill();
+    void push(Module &module);
+    void grow();
+    Module* new_last();
+    Module* last();
+};
+struct Suite {
+    List modules;
+    bool enable_skips = false;
+    static Suite* instance();
+    void init(bool skippable);
+    void kill();
+};
 } // namespace Sol::Test
-
-#define KILL_TEST(mod_kill__) \
-    if (GLOBAL_TEST_KILL) { \
-        std::cout << "\n    TEST HALT EXECUTION ENABLED (GLOBAL), CRASHING PROGRAM \n"; \
-        __builtin_trap(); \
-    } \
-    else if (!GLOBAL_TEST_NO_KILL && mod_kill__) { \
-        std::cout << "\n    TEST HALT EXECUTION ENABLED (TEST LOCAL), CRASHING PROGRAM \n"; \
-        __builtin_trap(); \
-    }
-
-#define TEST_INC() \
-    ++test_index__
-
-#define MAKE_RESULT_NAME(test_index, arg1, arg2) \
-    #test_index#arg1#arg2
-
-#define TEST_EQ(eq_arg1__, eq_arg2__, mod_kill__, skip__) \
-    TEST_INC(); \
-    if (!Test::match_eq(eq_arg1__, eq_arg2__, skip__)) { \
-        test_pass_check__ = false; \
-        TEST_PRINT_FAIL_INFO(eq_arg1__, eq_arg2__, !=); \
-        KILL_TEST(mod_kill__) \
-    } 
-
-#define TEST_BYTE_EQ(eq_arg1__, eq_arg2__, mod_kill__, skip__) \
-    TEST_INC(); \
-    if (!Test::byte_match_eq(eq_arg1__, eq_arg2__, skip__)) { \
-        test_pass_check__ = false; \
-        TEST_PRINT_FAIL(eq_arg1__, eq_arg2__, !=); \
-        KILL_TEST(mod_kill__) \
-    } 
+#define TEST_MODULE_BEGIN(name, skippable, skip_module) \
+    Sol::Test::Module::begin(name, __FILE__, __FUNCTION__, skippable, skip_module);
+#define TEST_MODULE_END() \
+    Sol::Test::Module::end();
+#define TEST_EQ(test_name, arg1, arg2, skip) \
+    Sol::Test::Suite::instance()->modules.last()->test_eq(test_name, arg1, arg2, #arg1, #arg2, __FILE__, __FUNCTION__, skip);

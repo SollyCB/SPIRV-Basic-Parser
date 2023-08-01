@@ -1,6 +1,8 @@
 #pragma once 
+#include "test.hpp"
 
-namespace Sol::Test::SpvTest {
-    void test_triangle3(bool skip);
-    void run();
+namespace Sol::Test {
+struct Spv : TestClass {
+    void run() override;
+};
 } // namespace Sol::Test::SpvTest
