@@ -7,7 +7,7 @@ using namespace Sol;
 int main() {
     MemoryConfig config = {};
     MemoryService::instance()->init(&config);
-    Test::Suite::instance()->init(true);
+    Test::Suite::instance()->init(false);
 
     Test::Spv c;  
     c.run();

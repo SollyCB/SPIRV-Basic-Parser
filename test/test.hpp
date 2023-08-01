@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 
 namespace Sol::Test {
@@ -52,6 +53,7 @@ struct Module {
         if (skip_module)
             return;
 
+        test_name = strcmp(test_name, "") == 0 ? "unnamed" : test_name;
         ++test_index;
         if (skippable && skip) {
             test_skipped(test_name);

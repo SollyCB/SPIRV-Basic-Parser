@@ -45,7 +45,7 @@ if (BUILD_TESTS)
     message("Building Tests...")
     include_directories(${CMAKE_SOURCE_DIR}/src/test)
 
-    set(TEST_FILES test/spv_test.cpp)
+    set(TEST_FILES test/spv_test.cpp test/test.cpp)
     add_executable(test_all test/test_entrypoint.cpp ${SOURCE_FILES} ${TEST_FILES})
 
     target_compile_options(test_all PRIVATE "${GCC_COVERAGE_COMPILE_FLAGS}") 

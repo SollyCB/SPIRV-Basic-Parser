@@ -52,12 +52,7 @@ struct Vec {
         ASSERT(len <= cap, "Vec::alloc len + count > capacity");
     }
     void zero() {
-        size_t tmp = len;
-        T t = {};
-        for(size_t i = len; i < cap; ++i) {
-          push(t);
-        }
-        len = tmp;
+        memset(data + len, 0, cap - len);
     }
 	void grow_zero(size_t count) {
 		grow(count);
@@ -72,7 +67,13 @@ struct Vec {
 		--len; 
 		return PopResult<T> { true, data[len] };
 	}
-  void push(T t) {
+    void push(T &t) {
+        if (cap == len)
+          grow();
+        data[len] = std::move(t);
+        ++len;
+    }
+  void push_cpy(T t) {
     if (cap == len)
       grow();
     data[len] = t;

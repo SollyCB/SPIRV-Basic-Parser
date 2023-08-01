@@ -10,12 +10,12 @@
 namespace Sol {
 	
 struct Spv {
-    enum class Stage {
+    enum class Stage : uint32_t {
         NONE,
         VERT,
         FRAG,
     };
-    enum class Storage {
+    enum class Storage : uint32_t {
         UNIFORM_CONSTANT = 0,
         INPUT = 1,
         UNIFORM = 2,
@@ -39,53 +39,127 @@ struct Spv {
         DESC_SET = 0x0800, 
         OFFSET = 0x1000,
     };
-    enum class Name {
+    enum class Name : uint32_t {
         VOID = 19,
         BOOL = 20,
         INT = 21,
         FLOAT = 22,
         VEC = 23,
         MATRIX = 24,
+        IMAGE = 25,
+        SAMPLER = 26,
         VAR = 59,
         PTR = 32,
     };
     struct Type {
-        int id = -1;
+        uint32_t id;
         Name name;
         void *data = nullptr;
     };
     struct DecoInfo {
         uint32_t flags = 0x0;
-        int array_stride = -1;
-        int mat_stride = -1;
-        int location = -1;
-        int component = -1;
-        int binding = -1;
-        int desc_set = -1;
-        int offset = -1;
+        uint32_t array_stride;
+        uint32_t mat_stride;
+        uint32_t location;
+        uint32_t component;
+        uint32_t binding;
+        uint32_t desc_set;
+        uint32_t offset;
     };
     struct Var {
         DecoInfo deco_info;
-        int ptr_id = -1;
+        uint32_t ptr_id;
     };
     struct Ptr {
         Storage storage;
-        int type_id = -1;
+        uint32_t type_id;
     };
     struct Int {
-        int width = -1;
-        bool sign = false;
+        uint32_t width;
+        bool sign;
     };
     struct Float {
-        int width = -1;
+        uint32_t width;
     };
     struct Vector {
-        int type_id = -1;
-        int length = -1;
+        uint32_t type_id;
+        uint32_t length;
     };
     struct Matrix {
-        int type_id = -1;
-        int column_count = -1;
+        uint32_t type_id;
+        uint32_t column_count;
+    };
+    struct Image {
+        enum Dim : uint32_t {
+            D1 = 0,
+            D2 = 1,
+            D3 = 2,
+            CUBE = 3,
+            RECT = 4,
+            BUFFER = 5,
+            SUBPASS_DATA = 6,
+        };
+        enum Depth : uint32_t {
+            NO_DEPTH = 0,
+            DEPTH = 1,
+            NEITHER = 2,
+        };
+        enum Sampled : uint32_t {
+            RUN_TIME = 0,
+            SAMPLING = 1,
+            READ_WRITE = 2,
+        };
+        enum Format : uint32_t {
+            Unknown = 0,
+            Rgba32f = 1,
+            Rgba16f = 2,
+            R32f = 3,
+            Rgba8 = 4,
+            Rgba8Snorm = 5,
+            Rg32f = 6,
+            Rg16f = 7,
+            R11fG11fB10f = 8,
+            R16f = 9,
+            Rgba16 = 10,
+            Rgb10A2 = 11,
+            Rg16 = 12,
+            Rg8 = 13,
+            R16 = 14,
+            R8 = 15,
+            Rgba16Snorm = 16,
+            Rg16Snorm = 17,
+            Rg8Snorm = 18,
+            R16Snorm = 19,
+            R8Snorm = 20,
+            Rgba32i = 21,
+            Rgba16i = 22,
+            Rgba8i = 23,
+            R32i = 24,
+            Rg32i = 25,
+            Rg16i = 26,
+            Rg8i = 27,
+            R16i = 28,
+            R8i = 29,
+            Rgba32ui = 30,
+            Rgba16ui = 31,
+            Rgba8ui = 32,
+            R32ui = 33,
+            Rgb10a2ui = 34,
+            Rg32ui = 35,
+            Rg16ui = 36,
+            Rg8ui = 37,
+            R16ui = 38,
+            R8ui = 39,
+            R64ui = 40,
+            R64i = 41,
+        };
+        uint32_t type_id;
+        Dim dim;
+        Depth depth;
+        Sampled sampled;
+        bool array;
+        bool multisampled;
+        Format format;
     };
 
     // Member objects
@@ -131,7 +205,7 @@ private:
     }
     template<typename T>
     T* get_T(uint32_t id, Spv::Name name) {
-        for(int i = 0; i < types.len; ++i) {
+        for(uint32_t i = 0; i < types.len; ++i) {
             if (id == types[i].id)
                 return reinterpret_cast<T*>(types[i].data);
         }
@@ -148,7 +222,7 @@ private:
 #if SPV_DEBUG
 public:
     struct DebugInfo {
-        int id;
+        uint32_t id;
         const char *name;
     };
     Vec<DebugInfo> debug;

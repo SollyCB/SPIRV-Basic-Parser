@@ -227,6 +227,27 @@ Spv Spv::parse(size_t code_size, const uint32_t *spirv)
                 ret.new_optype<Matrix>(instr, &mat, Name::MATRIX);
                 break;
             }
+            // OpTypeImage
+            case 25:
+            {
+                Image image = {};
+                image.type_id = *(instr + 2);
+                image.dim = static_cast<Image::Dim>(*(instr + 3));
+                image.depth = static_cast<Image::Depth>(*(instr + 4));
+                image.array = *(instr + 5);
+                image.multisampled = *(instr + 6);
+                image.sampled = static_cast<Image::Sampled>(*(instr + 7));
+                image.format = static_cast<Image::Format>(*(instr + 8));
+
+                ret.new_optype<Image>(instr, &image, Name::IMAGE);
+                break;
+            }
+            // OpTypeSampler
+            case 26:
+            {
+                ret.new_optype<int>(instr, nullptr, Name::SAMPLER);
+                break;
+            }
 
 
 #if SPV_DEBUG

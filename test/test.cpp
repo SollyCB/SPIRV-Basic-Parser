@@ -6,13 +6,20 @@ static void module_skipped_msg() {
     std::cout << YELLOW << "MODULE SKIPPED" << NC << '\n';
 }
 static void module_begin_msg(const char* module_name, 
-        const char* file_name, const char* function_name, bool skippable) {
+        const char* file_name, const char* function_name, bool skippable, bool global_skip) {
     std::cout << CYAN << "\n[ ModuleFile: " << file_name << " ] \n" << NC \
-    << "Running Test Module " << BLUE << module_name << NC << ", " << YELLOW << "SKIPPING TESTS (MODULE LOCAL) ";
-    if (skippable)
-        std::cout << GREEN << "ENABLED" << NC << ":\n";
+    << "Running Test Module " << BLUE << module_name << NC << ", " << YELLOW << "SKIPPING TESTS " 
+    << NC << "(" << BLUE << "MODULE LOCAL" << NC << ") ";
+    if (skippable) {
+        std::cout << GREEN << "ENABLED" << NC;
+        if (!global_skip)
+            std::cout << ", (" << RED << "DISABLED GLOBALLY" << NC << "):\n";
+        else
+            std::cout << ":\n";
+    }
     else
         std::cout << RED << "DISABLED" << NC << ":\n";
+
 }
 static void module_pass_msg() {
     std::cout << GREEN << "OK\n" << NC;
@@ -68,7 +75,7 @@ void Module::begin(const char* name, const char* file_name, const char* function
     ret->file_name = StringBuffer::get(file_name);
     ret->skippable = skippable && Suite::instance()->enable_skips;
     ret->skip_module = skip_module && ret->skippable;
-    module_begin_msg(name, file_name, function_name, ret->skippable);
+    module_begin_msg(name, file_name, function_name, skippable, Suite::instance()->enable_skips);
 
     if (ret->skippable && skip_module)
         module_skipped_msg();
