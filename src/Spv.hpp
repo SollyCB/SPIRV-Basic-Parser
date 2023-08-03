@@ -1,14 +1,14 @@
-#pragma once 
+#pragma once
 
 #include <cstdint>
 #include <cstddef>
-//#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan.hpp>
 
 #include "Vec.hpp"
 #include "Allocator.hpp"
 
 namespace Sol {
-	
+
 struct Spv {
     enum class Stage : uint32_t {
         NONE,
@@ -36,7 +36,7 @@ struct Spv {
         LOCATION = 0x0100,
         COMPONENT = 0x0200,
         BINDING = 0x0400,
-        DESC_SET = 0x0800, 
+        DESC_SET = 0x0800,
         OFFSET = 0x1000,
     };
     enum class Name : uint32_t {
@@ -48,8 +48,16 @@ struct Spv {
         MATRIX = 24,
         IMAGE = 25,
         SAMPLER = 26,
+        SAMPLED_IMAGE = 27,
+        ARRAY = 28,
+        RUNTIME_ARRAY = 29,
+        STRUCT = 30,
         VAR = 59,
         PTR = 32,
+		FWD_PTR = 39,
+        VAR_FINAL = 300,
+        VEC_FINAL = 301,
+        MAT_FINAL = 302,
     };
     struct Type {
         uint32_t id;
@@ -156,20 +164,31 @@ struct Spv {
         uint32_t type_id;
         Dim dim;
         Depth depth;
-        Sampled sampled;
         bool array;
         bool multisampled;
+        Sampled sampled;
         Format format;
     };
+    struct SampledImage {
+        uint32_t type_id;
+    };
+    struct Array {
+        uint32_t type_id;
+        uint32_t length;
+    };
+    struct RunTimeArray {
+        uint32_t type_id;
+    };
+    struct Struct {
+        uint32_t count;
+        uint32_t *type_ids;
+    };
 
-    // Member objects
-    // TODO:Sol: edit returned stage
-    // VkShaderStageFlagBits stage = VK_SHADER_STAGE_ALL;
-    Stage stage = Stage::NONE;
+    VkShaderStageFlagBits stage;
     const char* p_name = nullptr;
     Vec<Type> types;
 
-    static Spv parse(size_t code_size, const uint32_t *spirv);
+    static Spv parse(size_t code_size, const uint32_t *spirv, bool *ok);
 	void kill();
 
 private:
@@ -185,7 +204,7 @@ private:
         LOCATION = 30,
         COMPONENT = 31,
         BINDING = 33,
-        DESC_SET = 34, 
+        DESC_SET = 34,
         OFFSET = 35,
     };
     size_t scratch_mark = 0;

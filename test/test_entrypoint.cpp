@@ -9,7 +9,7 @@ int main() {
     MemoryService::instance()->init(&config);
     Test::Suite::instance()->init(false);
 
-    Test::Spv c;  
+    Test::Spv c;
     c.run();
 
     Test::Suite::instance()->kill();

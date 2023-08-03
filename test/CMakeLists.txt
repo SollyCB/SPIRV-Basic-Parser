@@ -1,3 +1,3 @@
 add_library(test
-    spv_test.cpp 
+    spv_test.cpp
 )

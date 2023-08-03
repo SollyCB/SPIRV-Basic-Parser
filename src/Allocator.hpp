@@ -35,7 +35,7 @@ struct Allocator {
   virtual ~Allocator() {}
   virtual void *allocate(size_t size, size_t alignment) = 0;
   virtual void *reallocate(size_t size, size_t cpy_size, void* ptr, size_t alignment) = 0;
-  virtual void deallocate(void* ptr) = 0; 
+  virtual void deallocate(void* ptr) = 0;
 };
 
 struct HeapAllocator : public Allocator {
@@ -56,7 +56,7 @@ struct HeapAllocator : public Allocator {
   /* General API */
   void *allocate(size_t size, size_t alignment) override;
   void *reallocate(size_t size, size_t cpy_size, void* ptr, size_t alignment) override;
-  void deallocate(void* ptr) override; 
+  void deallocate(void* ptr) override;
 };
 
 struct LinearAllocator : public Allocator {
@@ -75,14 +75,14 @@ struct LinearAllocator : public Allocator {
       return alloced;
   }
   inline void cut_diff(size_t mark) {
-      if (alloced > mark) 
+      if (alloced > mark)
           cut(alloced - mark);
   }
 
   /* General API */
   void *allocate(size_t size, size_t alignment) override;
   void *reallocate(size_t size, size_t cpy_size, void* ptr, size_t alignment) override;
-  void deallocate(void* ptr) override; 
+  void deallocate(void* ptr) override;
 };
 
 struct MemoryConfig {
@@ -100,9 +100,8 @@ struct MemoryService {
   void shutdown();
 };
 
-//inline void mem_cpy(void *to, void *from, size_t size) {
-    //mem_cpy(to, from, size);
-//}
+static HeapAllocator *HEAP = &MemoryService::instance()->system_allocator;
+static LinearAllocator *SCRATCH = &MemoryService::instance()->scratch_allocator;
 
 #define lin_alloca(size, alignment) ((Sol::MemoryService::instance()->scratch_allocator).allocate(size, alignment))
 #define heap_alloca(size, alignment) ((Sol::MemoryService::instance()->system_allocator).allocate(size, alignment))

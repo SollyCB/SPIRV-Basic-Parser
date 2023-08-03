@@ -2,7 +2,7 @@ F = -g
 
 .PHONY: all dbg test just_test release run
 
-all: 
+all:
 	cmake -S . -DONLY_TEST=OFF -DBUILD_TESTS=OFF -DDEBUG=ON -B build && cmake --build build && ./build/exe
 
 dbg:
@@ -11,14 +11,14 @@ dbg:
 release:
 	cmake -S . -DONLY_TEST=OFF -DBUILD_TESTS=OFF -DDEBUG=OFF -B build && cmake --build build
 
-test: 
+test:
 	cmake -S . -DONLY_TEST=OFF -DBUILD_TESTS=ON -B build && cmake --build build && ./build/test_all
 
-just_test: 
+just_test:
 	cmake -S . -DONLY_TEST=ON -DBUILD_TESTS=ON -B build && cmake --build build && ./build/test_all
 
 
-run: 
+run:
 	./build/exe
 
 old:

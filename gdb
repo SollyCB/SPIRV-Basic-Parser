@@ -1,3 +1,3 @@
 #!/usr/bin/bash
 
-gdb build/exe
+gdb -tui build/exe

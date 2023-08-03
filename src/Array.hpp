@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include "Allocator.hpp"
 #include "Assert.hpp"
 //#include "VulkanErrors.hpp"
@@ -11,7 +11,7 @@ struct Array {
   size_t cap = 0;
   size_t len = 0;
   Allocator *alloc = &MemoryService::instance()->scratch_allocator;
-  
+
 static Array<T> get(size_t size, size_t alignment) {
     Array a;
     a.init(size, alignment);
@@ -37,15 +37,14 @@ void reset() {
 void kill() {
     mem_free(mem, alloc);
 }
-
-void push(T t) {
+void push(T &t) {
   ASSERT(len < cap, "Push to Array<T> with insufficient capacity");
-  mem[len] = t;
+  mem[len] = std::move(t);
   ++len;
 }
-void push(T *t) {
+void push_cpy(T &t) {
   ASSERT(len < cap, "Push to Array<T> with insufficient capacity");
-  mem[len] = *t;
+  mem[len] = t;
   ++len;
 }
 T pop() {
@@ -77,4 +76,4 @@ T& operator[](size_t i) {
 }
 };
 
-} // namespace Sol 
+} // namespace Sol

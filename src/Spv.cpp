@@ -5,42 +5,41 @@
 #include "Array.hpp"
 
 /*
-    TODO:(Sol): 
-    1. Forward referencing in spirv
-*/
+ *  TODO:(Sol):
+ *  1. Forward referencing in spirv:
+ *  	As I understand it, for my use case they do not need to be handled,
+ *  	as they are handled sufficiently by collecting OpTypePointers.
+ */
 
 namespace Sol {
 
 static const uint32_t magic = 0x07230203;
-static LinearAllocator *scratch = &MemoryService::instance()->scratch_allocator;
+//static LinearAllocator *scratch = &MemoryService::instance()->scratch_allocator;
 
 template<typename T>
 inline T* convert(void *ptr) {
     return reinterpret_cast<T*>(ptr);
 }
 
-Spv Spv::parse(size_t code_size, const uint32_t *spirv)
+Spv Spv::parse(size_t code_size, const uint32_t *spirv, bool *ok)
 {
     Spv ret = {};
     if (spirv[0] != magic) {
-        ret.stage = Stage::NONE;
-        //ret.stage = VK_SHADER_STAGE_ALL;
+        if (ok != nullptr)
+            *ok = false;
         return ret;
     }
-
-    ret.scratch_mark = scratch->get_mark();
 
 #if SPV_DEBUG
     DebugInfo debug = {};
     ret.debug.init(16);
 #endif
 
-    ret.types.init(16);
-    // Avoid multiple constr/destr calls
+    ret.types.init(64);
+    ret.scratch_mark = SCRATCH->get_mark();
     Type type = {};
     Var var = {};
 
-    
     uint16_t inc = 5;
     while (inc < code_size / 4) {
         const uint16_t *info = reinterpret_cast<const uint16_t*>(spirv + inc);
@@ -48,18 +47,16 @@ Spv Spv::parse(size_t code_size, const uint32_t *spirv)
 
         switch (info[0]) {
         // stage
-			case 15: 
+			case 15:
             {
 				// TODO:(Sol): Support other shader stages
 				const uint32_t *model = instr + 1;
 				switch (*model) {
 				case 0:
-					//ret.stage = VK_SHADER_STAGE_VERTEX_BIT;
-					ret.stage = Stage::VERT;
+					ret.stage = VK_SHADER_STAGE_VERTEX_BIT;
 					break;
 				case 4:
-					//ret.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-					ret.stage = Stage::FRAG;
+					ret.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 					break;
 				default:
 					break;
@@ -135,7 +132,7 @@ Spv Spv::parse(size_t code_size, const uint32_t *spirv)
                         var_ref->deco_info.binding = literal;
                         break;
                     }
-                    case Deco::DESC_SET: 
+                    case Deco::DESC_SET:
                     {
                         var_ref->deco_info.flags |= static_cast<uint32_t>(DecoFlagBits::DESC_SET);
                         var_ref->deco_info.desc_set = literal;
@@ -156,7 +153,7 @@ Spv Spv::parse(size_t code_size, const uint32_t *spirv)
             // OpMemberDecorate
             case 72:
             {
-                // TODO:(Sol): 
+                // TODO:(Sol):
                 break;
             }
             // OpVar
@@ -176,7 +173,15 @@ Spv Spv::parse(size_t code_size, const uint32_t *spirv)
 
                 break;
             }
-            // OpTypeVoid 
+			// OpTypeForwardPointer
+			case 39:
+			{
+				DEBUG_ASSERT(false,
+						"OpTypePointer, confirm that this indeed does need to be \
+						handled for my use case...");
+				break;
+			}
+            // OpTypeVoid
             case 19:
             {
                 ret.new_optype<int>(instr, nullptr, Name::VOID);
@@ -191,39 +196,28 @@ Spv Spv::parse(size_t code_size, const uint32_t *spirv)
             // OpTypeInt
             case 21:
             {
-                Int integer = {};
-                integer.width = *(instr + 2);
-                integer.sign = *(instr + 3);
-
+                Int integer = {*(instr + 2), static_cast<bool>(*(instr + 3))};
                 ret.new_optype<Int>(instr, &integer, Name::INT);
                 break;
             }
             // OpTypeFloat
             case 22:
             {
-                Float floating_point = {};
-                floating_point.width = *(instr + 2);
-
+                Float floating_point = {*(instr + 2)};
                 ret.new_optype<Float>(instr, &floating_point, Name::FLOAT);
                 break;
             }
             // OpTypeVector
             case 23:
             {
-                Vector vec = {};
-                vec.type_id = *(instr + 2);
-                vec.length = *(instr + 3);
-
+                Vector vec = {*(instr + 2), *(instr + 3)};
                 ret.new_optype<Vector>(instr, &vec, Name::VEC);
                 break;
             }
             // OpTypeMatrix
             case 24:
             {
-                Matrix mat = {};
-                mat.type_id = *(instr + 2);
-                mat.column_count = *(instr + 3);
-
+                Matrix mat = {*(instr + 2), *(instr + 3)};
                 ret.new_optype<Matrix>(instr, &mat, Name::MATRIX);
                 break;
             }
@@ -248,6 +242,38 @@ Spv Spv::parse(size_t code_size, const uint32_t *spirv)
                 ret.new_optype<int>(instr, nullptr, Name::SAMPLER);
                 break;
             }
+            // OpTypeSampledImage
+            case 27:
+            {
+                SampledImage image = {*(instr + 2)};
+                ret.new_optype(instr, &image, Name::SAMPLED_IMAGE);
+                break;
+            }
+            // OpTypeArray
+            case 28:
+            {
+                Array array = {*(instr + 2), *(instr + 3)};
+                ret.new_optype(instr, &array, Name::ARRAY);
+                break;
+            }
+            // OpTypeRuntimeArray
+            case 29:
+            {
+                RunTimeArray array = {*(instr + 1)};
+                ret.new_optype(instr, &array, Name::RUNTIME_ARRAY);
+                break;
+            }
+            // OpTypeStruct
+            case 30:
+            {
+                Struct structure = {};
+                structure.count = static_cast<uint32_t>(info[1] - 2);
+                structure.type_ids = reinterpret_cast<uint32_t*>(lin_alloc(structure.count * sizeof(uint32_t)));
+                for(uint32_t i = 0; i < structure.count; ++i)
+                    structure.type_ids[i] = *(instr + 2 + i);
+                ret.new_optype(instr, &structure, Name::STRUCT);
+                break;
+            }
 
 
 #if SPV_DEBUG
@@ -265,15 +291,13 @@ Spv Spv::parse(size_t code_size, const uint32_t *spirv)
 
         inc += info[1];
     }
+    if (ok != nullptr)
+        *ok = true;
     return ret;
 }
 
-
-// TODO:(Sol): Loop through pointers and collect type info into final structs (not yet defined)
-//  Collect all info first, then collect. Bouncing around will be ugly...
-
 void Spv::kill() {
-    scratch->cut_diff(scratch_mark);
+    SCRATCH->cut_diff(scratch_mark);
     types.kill();
 
 #if SPV_DEBUG

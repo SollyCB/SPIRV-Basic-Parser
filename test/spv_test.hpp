@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include "test.hpp"
 
 namespace Sol::Test {

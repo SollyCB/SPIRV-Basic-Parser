@@ -10,15 +10,15 @@ int main() {
 
     MemoryConfig config = {};
     MemoryService::instance()->init(&config);
-    Allocator *heap = &MemoryService::instance()->system_allocator;
 
     size_t code_size = 0;
-    const uint32_t *pcode = File::read_spv(&code_size, "triangle3.vert.spv", heap);
-    Spv spv = Spv::parse(code_size, pcode);
+    const uint32_t *pcode = File::read_spv(&code_size, "triangle3.vert.spv", HEAP);
+    bool check;
+    Spv spv = Spv::parse(code_size, pcode, &check);
 
 	spv.kill();
 
-    mem_free(pcode, heap);
+    mem_free(pcode, HEAP);
     MemoryService::instance()->shutdown();
 
     return 0;

@@ -56,7 +56,9 @@ namespace Sol {
     void test_triangle3(bool skip) {
         size_t code_size = 0;
         const uint32_t *pcode = File::read_spv(&code_size, "triangle3.vert.spv", HEAP);
-        Spv spv = Spv::parse(code_size, pcode);
+        bool ok;
+        Spv spv = Spv::parse(code_size, pcode, &ok);
+        TEST_EQ("SpvParse_check_arg", ok, true, skip);
 
         using Flags = Spv::DecoFlagBits;
 
@@ -81,7 +83,7 @@ namespace Sol {
         Spv::Type *ubo_ptr_parent = get_parent(spv.types, ubo.ptr_id);
         ASSERT(ubo_ptr_parent != nullptr, "ID not found");
         TEST_EQ("ubo_ptr_id", ubo.ptr_id, ubo_ptr_parent->id, skip);
-        TEST_EQ("ubo_ptr_type_id", ubo_ptr->type_id, ubo_ptr_id, skip); 
+        TEST_EQ("ubo_ptr_type_id", ubo_ptr->type_id, ubo_ptr_id, skip);
         uint32_t ubo_ptr_parent_name = static_cast<uint32_t>(ubo_ptr_parent->name);
         TEST_EQ("ubo_ptr_type", ubo_ptr_parent_name, static_cast<uint32_t>(Spv::Name::PTR), skip);
 
@@ -103,7 +105,7 @@ namespace Sol {
         // INT FLOAT
         Spv::Float floating_point = *reinterpret_cast<Spv::Float*>(types[7].data);
         Spv::Int unsigned_int = *reinterpret_cast<Spv::Int*>(types[9].data);
-        Spv::Int signed_int = *reinterpret_cast<Spv::Int*>(types[12].data);
+        Spv::Int signed_int = *reinterpret_cast<Spv::Int*>(types[14].data);
         TEST_EQ("floating_point_id", types[7].id, static_cast<uint32_t>(6), skip);
         TEST_EQ("floating_point_type", static_cast<uint32_t>(types[7].name), static_cast<uint32_t>(Spv::Name::FLOAT), skip);
         TEST_EQ("floating_point_width", floating_point.width, static_cast<uint32_t>(32), skip);
@@ -111,15 +113,15 @@ namespace Sol {
         TEST_EQ("unsigned_int_type", static_cast<uint32_t>(types[9].name), static_cast<uint32_t>(Spv::Name::INT), skip);
         TEST_EQ("unsigned_int_sign", unsigned_int.sign, false, skip);
         TEST_EQ("signed_int_width", unsigned_int.width, static_cast<uint32_t>(32), skip);
-        TEST_EQ("signed_int_id", types[12].id, static_cast<uint32_t>(14), skip);
-        TEST_EQ("signed_int_type", static_cast<uint32_t>(types[12].name), static_cast<uint32_t>(Spv::Name::INT), skip);
+        TEST_EQ("signed_int_id", types[14].id, static_cast<uint32_t>(14), skip);
+        TEST_EQ("signed_int_type", static_cast<uint32_t>(types[14].name), static_cast<uint32_t>(Spv::Name::INT), skip);
         TEST_EQ("signed_int_sign", signed_int.sign, true, skip);
         TEST_EQ("signed_int_width", signed_int.width, static_cast<uint32_t>(32), skip);
 
         // VEC
         Spv::Vector vec4_float = *reinterpret_cast<Spv::Vector*>(types[8].data);
-        Spv::Vector vec2_float = *reinterpret_cast<Spv::Vector*>(types[16].data);
-        Spv::Vector vec3_float = *reinterpret_cast<Spv::Vector*>(types[19].data);
+        Spv::Vector vec2_float = *reinterpret_cast<Spv::Vector*>(types[19].data);
+        Spv::Vector vec3_float = *reinterpret_cast<Spv::Vector*>(types[22].data);
         uint32_t float_id = types[7].id;
         TEST_EQ("vec4_type_id", vec4_float.type_id, float_id, skip);
         TEST_EQ("vec4_type_length", vec4_float.length, static_cast<uint32_t>(4), skip);
@@ -129,10 +131,17 @@ namespace Sol {
         TEST_EQ("vec3_type_length", vec3_float.length, static_cast<uint32_t>(3), skip);
 
         // MATRIX
-        Spv::Matrix mat4_v4_float = *reinterpret_cast<Spv::Matrix*>(types[13].data);
+        Spv::Matrix mat4_v4_float = *reinterpret_cast<Spv::Matrix*>(types[15].data);
         uint32_t vec4_float_id = types[8].id;
         TEST_EQ("mat4_type_id", mat4_v4_float.type_id, vec4_float_id, skip);
         TEST_EQ("mat4_col_count", mat4_v4_float.column_count, static_cast<uint32_t>(4), skip);
+
+        // STRUCT
+        Spv::Struct structure = *reinterpret_cast<Spv::Struct*>(types[16].data);
+        uint32_t mat4_v4_id = types[15].id;
+        TEST_EQ("UBO_structure_member_types[0]", structure.type_ids[0], mat4_v4_id, skip);
+        TEST_EQ("UBO_structure_member_types[1]", structure.type_ids[1], mat4_v4_id, skip);
+        TEST_EQ("UBO_structure_member_types[2]", structure.type_ids[2], mat4_v4_id, skip);
 
         spv.kill();
         mem_free(pcode, HEAP);
@@ -140,6 +149,7 @@ namespace Sol {
     void Test::Spv::run() {
         TEST_MODULE_BEGIN("SpvTest_1", true, false);
 
+        test_triangle3(NO_SKIP);
         test_triangle3(NO_SKIP);
 
         TEST_MODULE_END();

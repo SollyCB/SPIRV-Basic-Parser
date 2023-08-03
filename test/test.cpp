@@ -5,10 +5,10 @@ namespace Sol::Test {
 static void module_skipped_msg() {
     std::cout << YELLOW << "MODULE SKIPPED" << NC << '\n';
 }
-static void module_begin_msg(const char* module_name, 
+static void module_begin_msg(const char* module_name,
         const char* file_name, const char* function_name, bool skippable, bool global_skip) {
     std::cout << CYAN << "\n[ ModuleFile: " << file_name << " ] \n" << NC \
-    << "Running Test Module " << BLUE << module_name << NC << ", " << YELLOW << "SKIPPING TESTS " 
+    << "Running Test Module " << BLUE << module_name << NC << ", " << YELLOW << "SKIPPING TESTS "
     << NC << "(" << BLUE << "MODULE LOCAL" << NC << ") ";
     if (skippable) {
         std::cout << GREEN << "ENABLED" << NC;
@@ -59,8 +59,8 @@ void Suite::kill() {
         std::cout << GREEN << "    All Tests Passed!\n" << NC;
     } else {
         std::cout << "    " << fail_count << " Modules " << RED << "FAILED!\n" << NC;
-        for(uint32_t i = 0; i < fail_count; ++i) 
-            std::cout << "    [ " << failed_modules[i]->file_name.cstr() << " ] " 
+        for(uint32_t i = 0; i < fail_count; ++i)
+            std::cout << "    [ " << failed_modules[i]->file_name.cstr() << " ] "
             << "ModuleName: " << BLUE <<  failed_modules[i]->module_name.cstr() << NC << '\n';
     }
 
@@ -122,7 +122,7 @@ void List::init() {
     data = reinterpret_cast<Module*>(malloc(cap * sizeof(Module)));
 }
 void List::kill() {
-    for(uint32_t i = 0; i < len; ++i) 
+    for(uint32_t i = 0; i < len; ++i)
         data[i].kill();
     free(data);
     cap = 0;
@@ -134,7 +134,7 @@ void List::grow() {
     data = reinterpret_cast<Module*>(malloc(sizeof(Module) * cap));
     memcpy(data, old_data, len * sizeof(Module));
     free(old_data);
-}    
+}
 void List::push(Module &module) {
     if (cap == len)
         grow();

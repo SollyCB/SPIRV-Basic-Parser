@@ -4,6 +4,6 @@ AlignAfterOpenBracket: Align
 AlignConsecutiveMacros: false
 AlignConsecutiveAssignments: false
 IndentWidth: 4
-ColumnLimit: 100 
+ColumnLimit: 100
 MaxEmptyLinesToKeep: 2
 AlignAfterOpenBracket: AlwaysBreak

@@ -17,10 +17,10 @@ static const char* CYAN = "\u001b[34;1m";
 
 template<typename T>
 void test_fail(
-        const char* test_name, T val1, T val2, const char* name1, 
-        const char* name2, const char* op, const char* file_name, const char* function_name) 
+        const char* test_name, T val1, T val2, const char* name1,
+        const char* name2, const char* op, const char* file_name, const char* function_name)
 {
-    std::cout << RED << "    TEST FAIL! " << NC << "[ FunctionName: " << function_name << " ], TestName " << test_name << ": " \
+    std::cout << RED << "    TEST FAIL! " << NC << "[ FunctionName: " << function_name << " ], TestName \"" << test_name << "\":\n        " \
     << name1 << ' ' << op << ' ' << name2 << ", " << name1 << " = " << val1 \
     << ", " << name2 << " = " << val2 << '\n';
 }
@@ -58,7 +58,7 @@ struct Module {
         if (skippable && skip) {
             test_skipped(test_name);
             return;
-        } else 
+        } else
             skipped = false;
 
         if (arg1 == arg2)
