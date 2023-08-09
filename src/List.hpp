@@ -20,15 +20,15 @@ struct PopResult {
 };
 
 template <typename T>
-struct Vec {
+struct List {
 	size_t len = 0;
 	size_t cap = 0;
 	T* data = nullptr;
 	Allocator* allocator = nullptr;
 
 	/* General API */
-	// Never uses a linear allocator as is has to be able to grow...
-	// If a known size is required, use the Array<T> type
+	// Never uses a linear allocator as it has to be able to grow...
+	// If a fixed size is preferred with scratch allocation, use the Array<T> type
 	void init(size_t cap_) {
 		cap = cap_;
 		allocator = HEAP;
@@ -48,7 +48,7 @@ struct Vec {
 	}
     void reserve(size_t count) {
         len += count;
-        ASSERT(len <= cap, "Vec::alloc len + count > capacity");
+        ASSERT(len <= cap, "List::alloc len + count > capacity");
     }
     void zero() {
         memset(data + len, 0, cap - len);
@@ -66,6 +66,12 @@ struct Vec {
 		--len;
 		return PopResult<T> { true, data[len] };
 	}
+    void push(T *t) {
+        if (cap == len)
+          grow();
+        data[len] = std::move(t);
+        ++len;
+    }
     void push(T &t) {
         if (cap == len)
           grow();
@@ -78,6 +84,12 @@ struct Vec {
 		data[len] = t;
 		++len;
 	}
+    T* to_append() {
+		if (cap == len)
+		  grow();
+        ++len;
+        return &data[len - 1];
+    }
 	void resize(size_t size) {
 		data = reinterpret_cast<T*>(mem_realloc(size * sizeof(T), len, data, 8, allocator));
 	}
@@ -99,10 +111,7 @@ struct Vec {
 		return &data[len - 1];
 	}
 	T& operator[](size_t i) {
-		if (i >= len) {
-		  std::cerr << "OUT OF BOUNDS ACCESS ON VEC " << data << "\n";
-		  exit(-1);
-		}
+        ASSERT(i < len, "OUT OF BOUNDS ACCESS ON LIST");
 		return data[i];
 	}
 };

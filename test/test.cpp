@@ -1,14 +1,32 @@
 #include "test.hpp"
 #include <cstring>
+#include <iostream>
 namespace Sol::Test {
+void Module::test_str_eq(const char* test_name, const char* arg1, const char* arg2, const char* arg1_name, const char* arg2_name, const char* file_name, const char* function_name, bool skip) {
+    if (skip_module)
+        return;
+
+    test_name = strcmp(test_name, "") == 0 ? "unnamed" : test_name;
+    ++test_index;
+    if (skippable && skip) {
+        test_skipped(test_name);
+        return;
+    } else 
+        skipped = false;
+
+    if (strcmp(arg1, arg2) == 0)
+        return;
+    ok = false;
+    test_fail(test_name, arg1, arg2, arg1_name, arg2_name, "!=", file_name, function_name);
+}
 
 static void module_skipped_msg() {
     std::cout << YELLOW << "MODULE SKIPPED" << NC << '\n';
 }
-static void module_begin_msg(const char* module_name,
+static void module_begin_msg(const char* module_name, 
         const char* file_name, const char* function_name, bool skippable, bool global_skip) {
     std::cout << CYAN << "\n[ ModuleFile: " << file_name << " ] \n" << NC \
-    << "Running Test Module " << BLUE << module_name << NC << ", " << YELLOW << "SKIPPING TESTS "
+    << "Running Test Module " << BLUE << module_name << NC << ", " << YELLOW << "SKIPPING TESTS " 
     << NC << "(" << BLUE << "MODULE LOCAL" << NC << ") ";
     if (skippable) {
         std::cout << GREEN << "ENABLED" << NC;
@@ -55,12 +73,14 @@ void Suite::kill() {
         }
     }
 
-    if (fail_count == 0) {
+    if (modules.len == 0) {
+        std::cout << YELLOW << "No tests to run...\n";
+    } else if (fail_count == 0) {
         std::cout << GREEN << "    All Tests Passed!\n" << NC;
     } else {
         std::cout << "    " << fail_count << " Modules " << RED << "FAILED!\n" << NC;
-        for(uint32_t i = 0; i < fail_count; ++i)
-            std::cout << "    [ " << failed_modules[i]->file_name.cstr() << " ] "
+        for(uint32_t i = 0; i < fail_count; ++i) 
+            std::cout << "    [ " << failed_modules[i]->file_name.cstr() << " ] " 
             << "ModuleName: " << BLUE <<  failed_modules[i]->module_name.cstr() << NC << '\n';
     }
 
@@ -117,39 +137,39 @@ const char* StringBuffer::cstr() {
     return data;
 }
 
-void List::init() {
+void TestList::init() {
     cap = 32;
     data = reinterpret_cast<Module*>(malloc(cap * sizeof(Module)));
 }
-void List::kill() {
-    for(uint32_t i = 0; i < len; ++i)
+void TestList::kill() {
+    for(uint32_t i = 0; i < len; ++i) 
         data[i].kill();
     free(data);
     cap = 0;
     len = 0;
 }
-void List::grow() {
+void TestList::grow() {
     cap *= 2;
     Module* old_data = data;
     data = reinterpret_cast<Module*>(malloc(sizeof(Module) * cap));
     memcpy(data, old_data, len * sizeof(Module));
     free(old_data);
-}
-void List::push(Module &module) {
+}    
+void TestList::push(Module &module) {
     if (cap == len)
         grow();
 
     data[len] = std::move(module);
     ++len;
 }
-Module* List::new_last() {
+Module* TestList::new_last() {
     if (len == cap)
         grow();
 
     ++len;
     return data + len - 1;
 }
-Module* List::last() {
+Module* TestList::last() {
     return data + len - 1;
 }
 

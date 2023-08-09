@@ -18,7 +18,6 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 set(GCC_COVERAGE_COMPILE_FLAGS
     "-std=c++17"
     "-g"
-    "-lvulkan"
 )
 
 set(SOURCE_FILES
@@ -27,19 +26,17 @@ set(SOURCE_FILES
     src/Spv.cpp
     src/tlsf.cpp
 )
+add_library(source ${SOURCE_FILES})
 
-option(ONLY_TEST OFF)
-if(ONLY_TEST MATCHES OFF)
-    option(DEBUG ON)
-    if(DEBUG)
-        add_compile_definitions(SPV_DEBUG=true)
-    endif()
-
-    add_executable(exe src/main.cpp ${SOURCE_FILES})
-
-    target_compile_options(exe PRIVATE "${GCC_COVERAGE_COMPILE_FLAGS}")
-    target_link_libraries(exe PRIVATE "${GCC_COVERAGE_LINK_FLAGS}")
+option(DEBUG ON)
+if(DEBUG)
+add_compile_definitions(DEBUG=true)
 endif()
+
+add_executable(exe src/main.cpp)
+
+target_compile_options(exe PRIVATE "${GCC_COVERAGE_COMPILE_FLAGS}")
+target_link_libraries(exe PRIVATE "${GCC_COVERAGE_LINK_FLAGS}" source)
 
 option(BUILD_TESTS ON)
 if (BUILD_TESTS)
@@ -47,8 +44,8 @@ if (BUILD_TESTS)
     include_directories(${CMAKE_SOURCE_DIR}/src/test)
 
     set(TEST_FILES test/spv_test.cpp test/test.cpp)
-    add_executable(test_all test/test_entrypoint.cpp ${SOURCE_FILES} ${TEST_FILES})
+    add_executable(test_all test/test_entrypoint.cpp ${TEST_FILES})
 
-    target_compile_options(test_all PRIVATE "${GCC_COVERAGE_COMPILE_FLAGS}")
-    target_link_libraries(test_all PRIVATE "${GCC_COVERAGE_LINK_FLAGS}")
+    target_compile_options(test_all PRIVATE "${GCC_COVERAGE_COMPILE_FLAGS}" "-ggdb")
+    target_link_libraries(test_all PRIVATE "${GCC_COVERAGE_LINK_FLAGS}" source)
 endif()

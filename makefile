@@ -1,24 +1,23 @@
 F = -g
+CP = && cp triangle3.vert.spv build/
 
 .PHONY: all dbg test just_test release run
 
 all:
-	cmake -S . -DONLY_TEST=OFF -DBUILD_TESTS=OFF -DDEBUG=ON -B build && cmake --build build && ./build/exe
+	cmake -S . -DCMAKE_BUILD_TYPE=Debug -DONLY_TEST=OFF -DBUILD_TESTS=OFF -DDEBUG=ON -B build && cmake --build build && ./build/exe $(CP)
 
+.PHONY: dbg
 dbg:
-	cmake -S . -DONLY_TEST=OFF -DBUILD_TESTS=OFF -DDEBUG=ON -B build && cmake --build build
+	cmake -S . -DCMAKE_BUILD_TYPE=Debug -DONLY_TEST=OFF -DBUILD_TESTS=ON -DDEBUG=ON -B build && cmake --build build $(CP)
+
+.PHONY: test
+test:
+	cmake -S . -DCMAKE_BUILD_TYPE=Debug -DONLY_TEST=OFF -DBUILD_TESTS=ON -DDEBUG=ON -B build && cmake --build build $(CP) && ./build/test_all
 
 release:
 	cmake -S . -DONLY_TEST=OFF -DBUILD_TESTS=OFF -DDEBUG=OFF -B build && cmake --build build
 
-test:
-	cmake -S . -DONLY_TEST=OFF -DBUILD_TESTS=ON -B build && cmake --build build && ./build/test_all
-
-just_test:
-	cmake -S . -DONLY_TEST=ON -DBUILD_TESTS=ON -B build && cmake --build build && ./build/test_all
-
-
-run:
+run: all
 	./build/exe
 
 old:

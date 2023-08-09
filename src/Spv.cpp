@@ -2,7 +2,6 @@
 
 #include "Spv.hpp"
 #include "Assert.hpp"
-#include "Array.hpp"
 
 /*
  *  TODO:(Sol):
@@ -14,23 +13,28 @@
 namespace Sol {
 
 static const uint32_t magic = 0x07230203;
-//static LinearAllocator *scratch = &MemoryService::instance()->scratch_allocator;
 
-template<typename T>
-inline T* convert(void *ptr) {
-    return reinterpret_cast<T*>(ptr);
+Spv::Type* Spv::get_type(uint32_t id, Name name)  {
+    for(uint32_t i = 0; i < types.len; ++i) {
+        if (id == types[i].id)
+            return &types[i];
+    }
+    Type *ret = types.to_append();
+    ret->id = id;
+    ret->name = name;
+    return ret;
 }
-
 Spv Spv::parse(size_t code_size, const uint32_t *spirv, bool *ok)
 {
     Spv ret = {};
+    ASSERT(spirv != nullptr, "do not pass nullptr to Spv::parse");
     if (spirv[0] != magic) {
         if (ok != nullptr)
             *ok = false;
         return ret;
     }
 
-#if SPV_DEBUG
+#if DEBUG
     DebugInfo debug = {};
     ret.debug.init(16);
 #endif
@@ -67,11 +71,10 @@ Spv Spv::parse(size_t code_size, const uint32_t *spirv, bool *ok)
             // OpDecorate
             case 71:
             {
-                Var* var_ref = ret.get_T<Var>(*(instr + 1), Name::VAR);
-                Deco deco = static_cast<Deco>(*(instr + 2));
+                Var* var_ref = &ret.get_type(*(instr + 1), Name::VAR)->var;
                 uint32_t literal = *(instr + 3);
 
-                switch(deco) {
+                switch(static_cast<Deco>(*(instr + 2))) {
                     case Deco::BLOCK:
                     {
                         var_ref->deco_info.flags |= static_cast<uint32_t>(DecoFlagBits::BLOCK);
@@ -159,7 +162,7 @@ Spv Spv::parse(size_t code_size, const uint32_t *spirv, bool *ok)
             // OpVar
             case 59:
             {
-                Var *var = ret.get_T<Var>(*(instr + 2), Name::VAR);
+                Var *var = &ret.get_type(*(instr + 2), Name::VAR)->var;
                 var->ptr_id = *(instr + 1);
 
                 break;
@@ -167,7 +170,7 @@ Spv Spv::parse(size_t code_size, const uint32_t *spirv, bool *ok)
             // OpTypePointer
             case 32:
             {
-                Ptr *ptr = ret.get_T<Ptr>(*(instr + 1), Name::PTR);
+                Ptr *ptr = &ret.get_type(*(instr + 1), Name::PTR)->ptr;
                 ptr->storage = static_cast<Storage>(*(instr + 2));
                 ptr->type_id = *(instr + 3);
 
@@ -184,41 +187,45 @@ Spv Spv::parse(size_t code_size, const uint32_t *spirv, bool *ok)
             // OpTypeVoid
             case 19:
             {
-                ret.new_optype<int>(instr, nullptr, Name::VOID);
+                ret.new_optype(instr, ret.types.to_append(), Name::VOID);
                 break;
             }
             // OpTypeBool
             case 20:
             {
-                ret.new_optype<int>(instr, nullptr, Name::BOOL);
+                ret.new_optype(instr, ret.types.to_append(), Name::BOOL);
                 break;
             }
             // OpTypeInt
             case 21:
             {
-                Int integer = {*(instr + 2), static_cast<bool>(*(instr + 3))};
-                ret.new_optype<Int>(instr, &integer, Name::INT);
+                Type* type = ret.types.to_append();
+                type->integer = {*(instr + 2), static_cast<bool>(*(instr + 3))};
+                ret.new_optype(instr, type, Name::INT);
                 break;
             }
             // OpTypeFloat
             case 22:
             {
-                Float floating_point = {*(instr + 2)};
-                ret.new_optype<Float>(instr, &floating_point, Name::FLOAT);
+                Type* type = ret.types.to_append();
+                type->floating_point = {*(instr + 2)};
+                ret.new_optype(instr, type, Name::FLOAT);
                 break;
             }
             // OpTypeVector
             case 23:
             {
-                Vector vec = {*(instr + 2), *(instr + 3)};
-                ret.new_optype<Vector>(instr, &vec, Name::VEC);
+                Type* type = ret.types.to_append();
+                type->vector = {*(instr + 2), *(instr + 3)};
+                ret.new_optype(instr, type, Name::VEC);
                 break;
             }
             // OpTypeMatrix
             case 24:
             {
-                Matrix mat = {*(instr + 2), *(instr + 3)};
-                ret.new_optype<Matrix>(instr, &mat, Name::MATRIX);
+                Type *type = ret.types.to_append();
+                type->matrix = {*(instr + 2), *(instr + 3)};
+                ret.new_optype(instr, type, Name::MATRIX);
                 break;
             }
             // OpTypeImage
@@ -233,50 +240,54 @@ Spv Spv::parse(size_t code_size, const uint32_t *spirv, bool *ok)
                 image.sampled = static_cast<Image::Sampled>(*(instr + 7));
                 image.format = static_cast<Image::Format>(*(instr + 8));
 
-                ret.new_optype<Image>(instr, &image, Name::IMAGE);
+                Type *type = ret.types.to_append();
+                type->image = std::move(image);
+                ret.new_optype(instr, type, Name::IMAGE);
                 break;
             }
             // OpTypeSampler
             case 26:
             {
-                ret.new_optype<int>(instr, nullptr, Name::SAMPLER);
+                ret.new_optype(instr, ret.types.to_append(), Name::SAMPLER);
                 break;
             }
             // OpTypeSampledImage
             case 27:
             {
-                SampledImage image = {*(instr + 2)};
-                ret.new_optype(instr, &image, Name::SAMPLED_IMAGE);
+                Type *type = ret.types.to_append();
+                type->sampledimage = {*(instr + 2)};
+                ret.new_optype(instr, type, Name::SAMPLED_IMAGE);
                 break;
             }
             // OpTypeArray
             case 28:
             {
-                Array array = {*(instr + 2), *(instr + 3)};
-                ret.new_optype(instr, &array, Name::ARRAY);
+                Type *type = ret.types.to_append();
+                type->arr = {*(instr + 2), *(instr + 3)};
+                ret.new_optype(instr, type, Name::ARRAY);
                 break;
             }
             // OpTypeRuntimeArray
             case 29:
             {
-                RunTimeArray array = {*(instr + 1)};
-                ret.new_optype(instr, &array, Name::RUNTIME_ARRAY);
+                Type *type = ret.types.to_append();
+                type->runtimearray = {*(instr + 1)};
+                ret.new_optype(instr, type, Name::RUNTIME_ARRAY);
                 break;
             }
             // OpTypeStruct
             case 30:
             {
-                Struct structure = {};
-                structure.count = static_cast<uint32_t>(info[1] - 2);
-                structure.type_ids = reinterpret_cast<uint32_t*>(lin_alloc(structure.count * sizeof(uint32_t)));
-                for(uint32_t i = 0; i < structure.count; ++i)
-                    structure.type_ids[i] = *(instr + 2 + i);
-                ret.new_optype(instr, &structure, Name::STRUCT);
+                Type* type = ret.types.to_append();
+                type->structure.type_ids.init(info[1] - 2, 8);
+                for(uint32_t i = 0; i < type->structure.type_ids.cap; ++i)
+                    type->structure.type_ids[i] = *(instr + 2 + i);
+                ret.new_optype(instr, type, Name::STRUCT);
                 break;
             }
 
 
-#if SPV_DEBUG
+#if DEBUG
             // OpName
             case 5:
             {
@@ -300,7 +311,7 @@ void Spv::kill() {
     SCRATCH->cut_diff(scratch_mark);
     types.kill();
 
-#if SPV_DEBUG
+#if DEBUG
     debug.kill();
 #endif
 }

@@ -17,8 +17,8 @@ static const char* CYAN = "\u001b[34;1m";
 
 template<typename T>
 void test_fail(
-        const char* test_name, T val1, T val2, const char* name1,
-        const char* name2, const char* op, const char* file_name, const char* function_name)
+        const char* test_name, T val1, T val2, const char* name1, 
+        const char* name2, const char* op, const char* file_name, const char* function_name) 
 {
     std::cout << RED << "    TEST FAIL! " << NC << "[ FunctionName: " << function_name << " ], TestName \"" << test_name << "\":\n        " \
     << name1 << ' ' << op << ' ' << name2 << ", " << name1 << " = " << val1 \
@@ -47,6 +47,7 @@ struct Module {
     static void begin(const char* name, const char* file_name, const char* function_name, bool skippable = true, bool skip_module = false);
     static void end();
     void kill();
+    void test_str_eq(const char* test_name, const char* arg1, const char* arg2, const char* arg1_name, const char* arg2_name, const char* file_name, const char* function_name, bool skip); 
 
     template<typename T>
     void test_eq(const char* test_name, T arg1, T arg2, const char* arg1_name, const char* arg2_name, const char* file_name, const char* function_name, bool skip) {
@@ -58,7 +59,7 @@ struct Module {
         if (skippable && skip) {
             test_skipped(test_name);
             return;
-        } else
+        } else 
             skipped = false;
 
         if (arg1 == arg2)
@@ -66,9 +67,27 @@ struct Module {
         ok = false;
         test_fail(test_name, arg1, arg2, arg1_name, arg2_name, "!=", file_name, function_name);
     }
+    template<typename T>
+    void test_neq(const char* test_name, T arg1, T arg2, const char* arg1_name, const char* arg2_name, const char* file_name, const char* function_name, bool skip) {
+        if (skip_module)
+            return;
+
+        test_name = strcmp(test_name, "") == 0 ? "unnamed" : test_name;
+        ++test_index;
+        if (skippable && skip) {
+            test_skipped(test_name);
+            return;
+        } else 
+            skipped = false;
+
+        if (arg1 != arg2)
+            return;
+        ok = false;
+        test_fail(test_name, arg1, arg2, arg1_name, arg2_name, "==", file_name, function_name);
+    }
 
 };
-struct List {
+struct TestList {
     size_t len = 0;
     size_t cap = 0;
     Module* data = nullptr;
@@ -80,7 +99,7 @@ struct List {
     Module* last();
 };
 struct Suite {
-    List modules;
+    TestList modules;
     bool enable_skips = false;
     static Suite* instance();
     void init(bool skippable);
@@ -93,3 +112,7 @@ struct Suite {
     Sol::Test::Module::end();
 #define TEST_EQ(test_name, arg1, arg2, skip) \
     Sol::Test::Suite::instance()->modules.last()->test_eq(test_name, arg1, arg2, #arg1, #arg2, __FILE__, __FUNCTION__, skip);
+#define TEST_NEQ(test_name, arg1, arg2, skip) \
+    Sol::Test::Suite::instance()->modules.last()->test_neq(test_name, arg1, arg2, #arg1, #arg2, __FILE__, __FUNCTION__, skip);
+#define TEST_STR_EQ(test_name, arg1, arg2, skip) \
+    Sol::Test::Suite::instance()->modules.last()->test_str_eq(test_name, arg1, arg2, #arg1, #arg2, __FILE__, __FUNCTION__, skip);

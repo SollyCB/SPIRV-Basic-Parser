@@ -1,0 +1,3 @@
+# SlugVk Common Types Library
+
+The common layer/types used in SlugVk Vulkan engine...

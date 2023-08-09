@@ -4,8 +4,9 @@
 #include <cstddef>
 #include <vulkan/vulkan.hpp>
 
-#include "Vec.hpp"
+#include "List.hpp"
 #include "Allocator.hpp"
+#include "Array.hpp"
 
 namespace Sol {
 
@@ -59,15 +60,12 @@ struct Spv {
         VEC_FINAL = 301,
         MAT_FINAL = 302,
     };
-    struct Type {
-        uint32_t id;
-        Name name;
-        void *data = nullptr;
-    };
     struct DecoInfo {
         uint32_t flags = 0x0;
+        union {
         uint32_t array_stride;
         uint32_t mat_stride;
+        };
         uint32_t location;
         uint32_t component;
         uint32_t binding;
@@ -82,6 +80,7 @@ struct Spv {
         Storage storage;
         uint32_t type_id;
     };
+    struct Void {};
     struct Int {
         uint32_t width;
         bool sign;
@@ -172,7 +171,7 @@ struct Spv {
     struct SampledImage {
         uint32_t type_id;
     };
-    struct Array {
+    struct Arr {
         uint32_t type_id;
         uint32_t length;
     };
@@ -180,13 +179,29 @@ struct Spv {
         uint32_t type_id;
     };
     struct Struct {
-        uint32_t count;
-        uint32_t *type_ids;
+        Array<uint32_t> type_ids;
     };
-
+    struct Type {
+        uint32_t id;
+        Name name;
+        union {
+            Var var;
+            Ptr ptr;
+            Void empty;
+            Int integer;
+            Float floating_point;
+            Vector vector;
+            Matrix matrix;
+            Image image;
+            SampledImage sampledimage;
+            Arr arr;
+            RunTimeArray runtimearray;
+            Struct structure;
+        };
+    };
     VkShaderStageFlagBits stage;
     const char* p_name = nullptr;
-    Vec<Type> types;
+    List<Type> types;
 
     static Spv parse(size_t code_size, const uint32_t *spirv, bool *ok);
 	void kill();
@@ -209,42 +224,20 @@ private:
     };
     size_t scratch_mark = 0;
 
-    template<typename T>
-    void new_optype(const uint32_t *instr, T *t, Spv::Name name) {
-        Spv::Type type = {};
-        type.id = *(instr + 1);
-        type.name = name;
-
-        if (!t)
-            return;
-
-        type.data = lin_alloc(sizeof(T));
-        mem_cpy(type.data, t, sizeof(T));
-        types.push(type);
-    }
-    template<typename T>
-    T* get_T(uint32_t id, Spv::Name name) {
-        for(uint32_t i = 0; i < types.len; ++i) {
-            if (id == types[i].id)
-                return reinterpret_cast<T*>(types[i].data);
-        }
-        Spv::Type type = {};
-        type.id = id;
-        type.name = name;
-        type.data = lin_alloc(sizeof(T));
-
-        types.push(type);
-        return reinterpret_cast<T*>(types.last()->data);
+    Type* get_type(uint32_t id, Spv::Name name); 
+    inline void new_optype(const uint32_t *instr, Type *type, Spv::Name name) {
+        type->id = *(instr + 1);
+        type->name = name;
     }
 
 
-#if SPV_DEBUG
+#if DEBUG
 public:
     struct DebugInfo {
         uint32_t id;
         const char *name;
     };
-    Vec<DebugInfo> debug;
+    List<DebugInfo> debug;
 #endif
 };
 
